@@ -30,7 +30,9 @@ def playGame(train_indicator=1):    #1 means Train, 0 means simply Run
 
     action_dim = 3  #Steering/Acceleration/Brake
     # state_dim = 29  #of sensors input
-    state_dim = 29*5  #of sensors input - last 5 states
+    # state_dim = 29*5  #of sensors input - last 5 states
+    state_dim = 29
+    num_states = 5
 
     np.random.seed(1337)
 
@@ -52,8 +54,8 @@ def playGame(train_indicator=1):    #1 means Train, 0 means simply Run
     from keras import backend as K
     K.set_session(sess)
 
-    actor = ActorNetwork(sess, state_dim, action_dim, BATCH_SIZE, TAU, LRA)
-    critic = CriticNetwork(sess, state_dim, action_dim, BATCH_SIZE, TAU, LRC)
+    actor = ActorNetwork(sess, state_dim, num_states, action_dim, BATCH_SIZE, TAU, LRA)
+    critic = CriticNetwork(sess, state_dim, num_states, action_dim, BATCH_SIZE, TAU, LRC)
     buff = ReplayBuffer(BUFFER_SIZE)    #Create replay buffer
 
     # Generate a Torcs environment
@@ -88,7 +90,11 @@ def playGame(train_indicator=1):    #1 means Train, 0 means simply Run
             ob = env.reset()
 
         # s_t = np.hstack((ob.angle, ob.track, ob.trackPos, ob.speedX, ob.speedY,  ob.speedZ, ob.wheelSpinVel/100.0, ob.rpm))
-        s_t = np.hstack((ob.angle, ob.track, ob.trackPos, ob.speedX, ob.speedY,  ob.speedZ, ob.wheelSpinVel/100.0, ob.rpm)*5)
+        # s_t = np.hstack((ob.angle, ob.track, ob.trackPos, ob.speedX, ob.speedY,  ob.speedZ, ob.wheelSpinVel/100.0, ob.rpm)*5)
+        s_t = np.hstack((ob.angle, ob.track, ob.trackPos, ob.speedX, ob.speedY,  ob.speedZ, ob.wheelSpinVel/100.0, ob.rpm))
+        s = s_t
+        for si in range(num_states-1):
+            s_t = np.vstack((s_t, s))
 
         total_reward = 0.
         loss_episode = 0.0
@@ -101,7 +107,9 @@ def playGame(train_indicator=1):    #1 means Train, 0 means simply Run
             a_t = np.zeros([1,action_dim])
             noise_t = np.zeros([1,action_dim])
             
-            a_t_original = actor.model.predict(s_t.reshape(1, s_t.shape[0]))
+            # a_t_original = actor.model.predict(s_t.reshape(1, s_t.shape[0]))
+            a_t_original = actor.model.predict(s_t.reshape(1, s_t.shape[0], s_t.shape[1]))
+
             noise_t[0][0] = train_indicator * max(epsilon, 0) * OU.function(a_t_original[0][0],  0.0 , 0.60, 0.30)
             noise_t[0][1] = train_indicator * max(epsilon, 0) * OU.function(a_t_original[0][1],  0.5 , 1.00, 0.10)
             noise_t[0][2] = train_indicator * max(epsilon, 0) * OU.function(a_t_original[0][2], -0.1 , 1.00, 0.05)
@@ -119,8 +127,10 @@ def playGame(train_indicator=1):    #1 means Train, 0 means simply Run
             distance_episode += dist
 
             # s_t1 = np.hstack((ob.angle, ob.track, ob.trackPos, ob.speedX, ob.speedY, ob.speedZ, ob.wheelSpinVel/100.0, ob.rpm))
-            s_t1 = np.hstack((tuple(s_t[-116:]),np.hstack((ob.angle, ob.track, ob.trackPos, ob.speedX, ob.speedY, ob.speedZ, ob.wheelSpinVel/100.0, ob.rpm))))
-        
+            # s_t1 = np.hstack((tuple(s_t[-116:]),np.hstack((ob.angle, ob.track, ob.trackPos, ob.speedX, ob.speedY, ob.speedZ, ob.wheelSpinVel/100.0, ob.rpm))))
+            s_t1 = np.hstack((ob.angle, ob.track, ob.trackPos, ob.speedX, ob.speedY, ob.speedZ, ob.wheelSpinVel/100.0, ob.rpm))
+            s_t1 = np.vstack((s_t[-(num_states-1):], s_t1))
+
             buff.add(s_t, a_t[0], r_t, s_t1, done)      #Add replay buffer
             
             #Do the batch update

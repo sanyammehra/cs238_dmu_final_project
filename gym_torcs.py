@@ -261,7 +261,7 @@ class TorcsEnv:
                                track=np.array(raw_obs['track'], dtype=np.float32)/200.,
                                trackPos=np.array(raw_obs['trackPos'], dtype=np.float32)/1.,
                                wheelSpinVel=np.array(raw_obs['wheelSpinVel'], dtype=np.float32),
-                                img = np.zeros((64,64,3)))
+                                img = np.zeros((3, 64,64)))
         else:
             names = ['focus',
                      'speedX', 'speedY', 'speedZ','angle',

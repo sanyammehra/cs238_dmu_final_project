@@ -47,9 +47,9 @@ class CriticNetwork(object):
         print("Now we build the model")
         S = Input(shape=[num_states, state_size])  
         A = Input(shape=[action_dim],name='action2')
-        I = Input(shape = [3,64,64])
+        I = Input(shape = [15,64,64])
         
-        conv1 = Conv2D(16, 3,3,activation = 'relu',dim_ordering = 'th', input_shape = (3,64,64), border_mode = 'same')(I)
+        conv1 = Conv2D(32, 3,3,activation = 'relu',dim_ordering = 'th', input_shape = (3,64,64), border_mode = 'same')(I)
         mp1 = MaxPooling2D(pool_size = (2,2), dim_ordering = 'th')(conv1)
         conv2 = Conv2D( 16,3,3,activation = 'relu',dim_ordering = 'th', input_shape = (3,64,64), border_mode = 'same')(mp1)
         mp2 = MaxPooling2D(pool_size = (2,2), dim_ordering = 'th')(conv2)

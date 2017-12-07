@@ -36,7 +36,7 @@ def playGame(train_indicator=1):    #1 means Train, 0 means simply Run
 
     np.random.seed(1337)
 
-    vision = True
+    vision = False
 
     EXPLORE = 100000.
     episode_count = 2000
@@ -93,9 +93,12 @@ def playGame(train_indicator=1):    #1 means Train, 0 means simply Run
         # s_t = np.hstack((ob.angle, ob.track, ob.trackPos, ob.speedX, ob.speedY,  ob.speedZ, ob.wheelSpinVel/100.0, ob.rpm)*5)
         s_t = np.hstack((ob.angle, ob.track, ob.trackPos, ob.speedX, ob.speedY,  ob.speedZ, ob.wheelSpinVel/100.0, ob.rpm))
         s = s_t
+        image = ob.img
+        im = image
         for si in range(num_states-1):
             s_t = np.vstack((s_t, s))
-        image = ob.img
+            image = np.concatenate((im,image),axis = 0)
+        print ("image1 shape = ", image.shape)
 
         buff_entity_old = {'s':s_t,'i':image}
         
@@ -135,7 +138,9 @@ def playGame(train_indicator=1):    #1 means Train, 0 means simply Run
             # s_t1 = np.hstack((tuple(s_t[-116:]),np.hstack((ob.angle, ob.track, ob.trackPos, ob.speedX, ob.speedY, ob.speedZ, ob.wheelSpinVel/100.0, ob.rpm))))
             s_t1 = np.hstack((ob.angle, ob.track, ob.trackPos, ob.speedX, ob.speedY, ob.speedZ, ob.wheelSpinVel/100.0, ob.rpm))
             s_t1 = np.vstack((s_t[-(num_states-1):], s_t1))
-            image = ob.img
+            image1 = ob.img
+            image1 = np.concatenate((image[-3*(num_states-1):],image1),axis = 0)
+            print ("image shape = ", image1.shape)
             buff_entity_new = {'s':s_t1,'i':image}
            # buff.add(s_t, a_t[0], r_t, s_t1, done)      #Add replay buffer
             buff.add(buff_entity_old,a_t[0],r_t,buff_entity_new,done)
@@ -172,6 +177,7 @@ def playGame(train_indicator=1):    #1 means Train, 0 means simply Run
 
             total_reward += r_t
             s_t = s_t1
+            image = image1
         
             print("Episode", i, "Step", step, "Action", a_t, "Reward", r_t, "Loss", loss)
         

@@ -53,10 +53,12 @@ class CriticNetwork(object):
         mp1 = MaxPooling2D(pool_size = (2,2), dim_ordering = 'th')(conv1)
         conv2 = Conv2D( 16,3,3,activation = 'relu',dim_ordering = 'th', input_shape = (3,64,64), border_mode = 'same')(mp1)
         mp2 = MaxPooling2D(pool_size = (2,2), dim_ordering = 'th')(conv2)
-        mp2_flatten = Flatten()(mp2)
-        im_h = Dense(32, activation = 'relu')(mp2_flatten)
+        conv3 = Conv2D( 8,3,3,activation = 'relu',dim_ordering = 'th', input_shape = (3,64,64), border_mode = 'same')(mp2)
+        mp3 = MaxPooling2D(pool_size = (2,2), dim_ordering = 'th')(conv3)
+        mp3_flatten = Flatten()(mp3)
+        im_h = Dense(16, activation = 'relu')(mp3_flatten)
 
-        x = GRU(32, return_sequences=False, name='gru1')(S)  
+        x = GRU(16, return_sequences=False, name='gru1')(S)  
         x_merge = merge([im_h,x], mode = 'concat')
 
         w1 = Dense(HIDDEN1_UNITS, activation='relu')(x_merge)

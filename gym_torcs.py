@@ -8,6 +8,7 @@ import copy
 import collections as col
 import os
 import time
+from skimage import img_as_float
 
 
 class TorcsEnv:
@@ -237,7 +238,9 @@ class TorcsEnv:
         r = np.array(r).reshape(sz)
         g = np.array(g).reshape(sz)
         b = np.array(b).reshape(sz)
-        return np.array([r, g, b], dtype=np.uint8)
+        im = img_as_float(np.array([r, g, b], dtype=np.uint8))
+        #print("IM is = ", im)
+        return im
 
     def make_observaton(self, raw_obs):
         if self.vision is False:

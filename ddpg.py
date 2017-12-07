@@ -36,7 +36,7 @@ def playGame(train_indicator=1):    #1 means Train, 0 means simply Run
 
     np.random.seed(1337)
 
-    vision = False
+    vision = True
 
     EXPLORE = 100000.
     episode_count = 2000
@@ -95,7 +95,10 @@ def playGame(train_indicator=1):    #1 means Train, 0 means simply Run
         s = s_t
         for si in range(num_states-1):
             s_t = np.vstack((s_t, s))
+        image = ob.img
 
+        buff_entity_old = {'s':s_t,'i':image}
+        
         total_reward = 0.
         loss_episode = 0.0
         target_q_episode = []
@@ -108,8 +111,10 @@ def playGame(train_indicator=1):    #1 means Train, 0 means simply Run
             noise_t = np.zeros([1,action_dim])
             
             # a_t_original = actor.model.predict(s_t.reshape(1, s_t.shape[0]))
-            a_t_original = actor.model.predict(s_t.reshape(1, s_t.shape[0], s_t.shape[1]))
-
+            #a_t_original = actor.model.predict(s_t.reshape(1, s_t.shape[0], s_t.shape[1]))
+            rand = buff_entity_old['s']
+            rand2 = buff_entity_old['i']
+            a_t_original = actor.model.predict([rand.reshape(1,rand.shape[0],rand.shape[1]),rand2.reshape(1,rand2.shape[0],rand2.shape[1],rand2.shape[2])])
             noise_t[0][0] = train_indicator * max(epsilon, 0) * OU.function(a_t_original[0][0],  0.0 , 0.60, 0.30)
             noise_t[0][1] = train_indicator * max(epsilon, 0) * OU.function(a_t_original[0][1],  0.5 , 1.00, 0.10)
             noise_t[0][2] = train_indicator * max(epsilon, 0) * OU.function(a_t_original[0][2], -0.1 , 1.00, 0.05)
@@ -130,19 +135,22 @@ def playGame(train_indicator=1):    #1 means Train, 0 means simply Run
             # s_t1 = np.hstack((tuple(s_t[-116:]),np.hstack((ob.angle, ob.track, ob.trackPos, ob.speedX, ob.speedY, ob.speedZ, ob.wheelSpinVel/100.0, ob.rpm))))
             s_t1 = np.hstack((ob.angle, ob.track, ob.trackPos, ob.speedX, ob.speedY, ob.speedZ, ob.wheelSpinVel/100.0, ob.rpm))
             s_t1 = np.vstack((s_t[-(num_states-1):], s_t1))
-
-            buff.add(s_t, a_t[0], r_t, s_t1, done)      #Add replay buffer
-            
+            image = ob.img
+            buff_entity_new = {'s':s_t1,'i':image}
+           # buff.add(s_t, a_t[0], r_t, s_t1, done)      #Add replay buffer
+            buff.add(buff_entity_old,a_t[0],r_t,buff_entity_new,done)
             #Do the batch update
             batch = buff.getBatch(BATCH_SIZE)
-            states = np.asarray([e[0] for e in batch])
+            states = np.asarray([e[0]['s'] for e in batch])
+            states_images = np.asarray([e[0]['i'] for e in batch])
             actions = np.asarray([e[1] for e in batch])
             rewards = np.asarray([e[2] for e in batch])
-            new_states = np.asarray([e[3] for e in batch])
+            new_states = np.asarray([e[3]['s'] for e in batch])
+            new_states_images = np.asarray([e[3]['i'] for e in batch])
             dones = np.asarray([e[4] for e in batch])
             y_t = np.asarray([e[1] for e in batch])
 
-            target_q_values = critic.target_model.predict([new_states, actor.target_model.predict(new_states)])  
+            target_q_values = critic.target_model.predict([new_states, actor.target_model.predict([new_states,new_states_images]), new_states_images])  
             
             qval = np.argmax(np.array(target_q_values),1)
             target_q_episode.append(qval)
@@ -154,11 +162,11 @@ def playGame(train_indicator=1):    #1 means Train, 0 means simply Run
                     y_t[k] = rewards[k] + GAMMA*target_q_values[k]
        
             if (train_indicator):
-                loss += critic.model.train_on_batch([states,actions], y_t) 
+                loss += critic.model.train_on_batch([states,actions,states_images], y_t) 
                 loss_episode += loss
-                a_for_grad = actor.model.predict(states)
-                grads = critic.gradients(states, a_for_grad)
-                actor.train(states, grads)
+                a_for_grad = actor.model.predict([states,states_images])
+                grads = critic.gradients(states, a_for_grad,states_images)
+                actor.train(states, grads, states_images)
                 actor.target_train()
                 critic.target_train()
 

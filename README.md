@@ -1,7 +1,7 @@
-## AA228/CS238 : Simulated Autonomous Driving with Deep Reinforcement Learning
+# AA228/CS238 : Simulated Autonomous Driving with Deep Reinforcement Learning
 
 
-# Installation Dependencies:
+### Installation Dependencies:
 
 * Python 2.7
 * Keras 1.1.0
